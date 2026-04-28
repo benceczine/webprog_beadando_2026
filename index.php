@@ -19,9 +19,32 @@ switch ($oldal) {
         echo "<h1>A Forma-1 Története (Főoldal)</h1>"; 
         break;
         
-    case 'belepes':
-        echo "<h1>Belépés / Regisztráció</h1>";
-        // Itt lesz a login űrlap
+    case 'login':
+        include('views/login.php');
+        break;
+
+    case 'login_ellenorzes':
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $user = $_POST['user'];
+            $pass = $_POST['pass'];
+
+            $stmt = $dbh->prepare("SELECT * FROM felhasznalok WHERE felhasznalonev = ? AND jelszo = ?");
+            $stmt->execute([$user, $pass]);
+            $felhasznalo = $stmt->fetch();
+
+            if ($felhasznalo) {
+                $_SESSION['user_id'] = $felhasznalo['id'];
+                $_SESSION['user_nev'] = $felhasznalo['felhasznalonev'];
+                header("Location: index.php?oldal=fooldal");
+            } else {
+                echo "<script>alert('Hibás adatok!'); window.location.href='index.php?oldal=login';</script>";
+            }
+        }
+        break;
+
+    case 'logout':
+        session_destroy();
+        header("Location: index.php?oldal=fooldal");
         break;
         
     case 'kilepes':
@@ -35,7 +58,20 @@ switch ($oldal) {
         break;
         
     case 'kapcsolat':
-        echo "<h1>Kapcsolat űrlap</h1>";
+        include('views/kapcsolat.php');
+        break;
+
+    case 'kapcsolat_mentes':
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $nev = $_POST['nev'];
+            $email = $_POST['email'];
+            $uzenet = $_POST['uzenet'];
+
+            $stmt = $dbh->prepare("INSERT INTO uzenetek (nev, email, uzenet) VALUES (?, ?, ?)");
+            $stmt->execute([$nev, $email, $uzenet]);
+            
+            echo "<script>alert('Üzenet elküldve!'); window.location.href='index.php?oldal=fooldal';</script>";
+        }
         break;
         
     case 'uzenetek':
@@ -48,16 +84,15 @@ switch ($oldal) {
 
     // Itt regisztráljuk be a törlés útvonalát is!
     case 'pilota_torles':
+        // Csak bejelentkezett felhasználó törölhet!
+        if (!isset($_SESSION['user_id'])) {
+            die("Ehhez a művelethez be kell jelentkezned!");
+        }
         require_once('models/pilota_model.php');
         if (isset($_GET['id'])) {
             pilota_torles($dbh, $_GET['id']);
         }
         header("Location: index.php?oldal=crud");
-        break;
-
-    default:
-        // Ha valami hülyeséget ír az URL-be
-        echo "<h2>Hiba 404: Az oldal nem található!</h2>";
         break;
 }
 
