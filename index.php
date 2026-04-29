@@ -151,6 +151,94 @@ switch ($oldal) {
         }
         include('views/pilota_szerkesztes.php');
         break;
+    case 'felhasznalok':
+        // Védelem: Csak az admin láthatja ezt az oldalt!
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            uzenet_beallit('Nincs jogosultságod megtekinteni ezt az oldalt!', 'danger');
+            header("Location: index.php?oldal=fooldal");
+            exit;
+        }
+        include('views/felhasznalok.php');
+        break;
+
+    case 'felhasznalo_torles':
+        // Védelem: Csak az admin törölhet!
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            uzenet_beallit('Nincs jogosultságod a művelethez!', 'danger');
+            header("Location: index.php?oldal=fooldal");
+            exit;
+        }
+
+        if (isset($_GET['id'])) {
+            $torlendo_id = $_GET['id'];
+            
+            // Lekérjük a törlendő usert, hogy ellenőrizzük, nem az admin-e az
+            $stmt = $dbh->prepare("SELECT felhasznalonev FROM felhasznalok WHERE id = ?");
+            $stmt->execute([$torlendo_id]);
+            $user = $stmt->fetch();
+            
+            if ($user && $user['felhasznalonev'] !== 'admin') {
+                $del_stmt = $dbh->prepare("DELETE FROM felhasznalok WHERE id = ?");
+                $del_stmt->execute([$torlendo_id]);
+                uzenet_beallit('A felhasználó sikeresen törölve!', 'success');
+            } else {
+                uzenet_beallit('Ezt a felhasználót nem lehet törölni!', 'danger');
+            }
+        }
+        header("Location: index.php?oldal=felhasznalok");
+        break;
+    case 'admin_felhasznalo_hozzaadas':
+        // Védelem: Csak admin
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            header("Location: index.php?oldal=fooldal");
+            exit;
+        }
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $user = trim($_POST['user']);
+            $pass = $_POST['pass'];
+            
+            // Foglaltság ellenőrzése
+            $stmt = $dbh->prepare("SELECT id FROM felhasznalok WHERE felhasznalonev = ?");
+            $stmt->execute([$user]);
+            if ($stmt->fetch()) {
+                uzenet_beallit('Ez a név már foglalt!', 'danger');
+            } else {
+                $titkositott = password_hash($pass, PASSWORD_DEFAULT);
+                $ins = $dbh->prepare("INSERT INTO felhasznalok (felhasznalonev, jelszo) VALUES (?, ?)");
+                $ins->execute([$user, $titkositott]);
+                uzenet_beallit('Új felhasználó sikeresen hozzáadva!', 'success');
+            }
+        }
+        header("Location: index.php?oldal=felhasznalok");
+        break;
+
+    case 'felhasznalo_jelszo':
+        // Védelem: Csak admin
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            header("Location: index.php?oldal=fooldal");
+            exit;
+        }
+        include('views/felhasznalo_jelszo.php');
+        break;
+
+    case 'admin_jelszo_mentes':
+        // Védelem: Csak admin
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            header("Location: index.php?oldal=fooldal");
+            exit;
+        }
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $id = $_POST['id'];
+            $uj_jelszo = $_POST['uj_jelszo'];
+            
+            $titkositott = password_hash($uj_jelszo, PASSWORD_DEFAULT);
+            $stmt = $dbh->prepare("UPDATE felhasznalok SET jelszo = ? WHERE id = ?");
+            $stmt->execute([$titkositott, $id]);
+            
+            uzenet_beallit('A jelszó sikeresen módosítva!', 'success');
+        }
+        header("Location: index.php?oldal=felhasznalok");
+        break;
 }
 
 // Lábjegyzet betöltése (minden oldalon ott lesz)

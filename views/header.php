@@ -23,5 +23,8 @@
             <a href="index.php?oldal=login" style="color: blue; font-weight: bold;">Bejelentkezés</a> | 
             <a href="index.php?oldal=regisztracio" style="color: green; font-weight: bold;">Regisztráció</a>
         <?php endif; ?>
+        <?php if(isset($_SESSION['user_nev']) && $_SESSION['user_nev'] === 'admin'): ?>
+            | <a href="index.php?oldal=felhasznalok" style="color: purple; font-weight: bold;">Felhasználók kezelése</a> 
+        <?php endif; ?>
         </nav>
     <hr>
