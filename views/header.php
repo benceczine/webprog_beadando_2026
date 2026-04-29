@@ -14,7 +14,14 @@
 <body>
     <nav>
         <a href="index.php?oldal=fooldal">Főoldal</a> | 
-        <a href="index.php?oldal=crud">CRUD (Pilóták)</a>
-    </nav>
+        <a href="index.php?oldal=crud">CRUD (Pilóták)</a> | 
+        
+        <?php if(isset($_SESSION['user_id'])): ?>
+            <span style="margin-left: 15px;">Üdv, <strong><?= htmlspecialchars($_SESSION['user_nev']) ?></strong>!</span> |
+            <a href="index.php?oldal=logout" style="color: red; font-weight: bold;">Kijelentkezés</a>
+        <?php else: ?>
+            <a href="index.php?oldal=login" style="color: blue; font-weight: bold;">Bejelentkezés</a> | 
+            <a href="index.php?oldal=regisztracio" style="color: green; font-weight: bold;">Regisztráció</a>
+        <?php endif; ?>
+        </nav>
     <hr>
-

@@ -3,6 +3,9 @@ require_once('models/pilota_model.php');
 
 $kereses = isset($_GET['kereses']) ? $_GET['kereses'] : '';
 $pilotak = get_szurt_pilotak($dbh, $kereses);
+
+// Létrehozunk egy kényelmes változót, hogy tudjuk, admin-e az illető
+$is_admin = (isset($_SESSION['user_nev']) && $_SESSION['user_nev'] === 'admin');
 ?>
 
 <div class="container">
@@ -18,7 +21,9 @@ $pilotak = get_szurt_pilotak($dbh, $kereses);
         <?php endif; ?>
     </form>
 
-    <a href="index.php?oldal=pilota_hozzaadas" class="btn btn-success mb-3">Új pilóta felvétele</a>
+    <?php if ($is_admin): ?>
+        <a href="index.php?oldal=pilota_hozzaadas" class="btn btn-success mb-3">Új pilóta felvétele</a>
+    <?php endif; ?>
 
     <table class="table table-bordered table-striped">
         <thead class="table-dark">
@@ -28,7 +33,9 @@ $pilotak = get_szurt_pilotak($dbh, $kereses);
                 <th>Nem</th>
                 <th>Születési dátum</th>
                 <th>Nemzet</th>
-                <th>Műveletek</th>
+                <?php if ($is_admin): ?>
+                    <th>Műveletek</th>
+                <?php endif; ?>
             </tr>
         </thead>
         <tbody>
@@ -40,15 +47,18 @@ $pilotak = get_szurt_pilotak($dbh, $kereses);
                     <td><?= htmlspecialchars($p['nem']) ?></td>
                     <td><?= $p['szuldat'] ?></td>
                     <td><?= htmlspecialchars($p['nemzet']) ?></td>
-                    <td>
-                        <a href="index.php?oldal=pilota_szerkesztes&id=<?= $p['az'] ?>" class="btn btn-primary btn-sm">Szerkesztés</a>
-                        <a href="index.php?oldal=pilota_torles&id=<?= $p['az'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Biztosan törölni szeretnéd ezt a pilótát?')">Törlés</a>
-                    </td>
+                    
+                    <?php if ($is_admin): ?>
+                        <td>
+                            <a href="index.php?oldal=pilota_szerkesztes&id=<?= $p['az'] ?>" class="btn btn-primary btn-sm">Szerkesztés</a>
+                            <a href="index.php?oldal=pilota_torles&id=<?= $p['az'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Biztosan törölni szeretnéd ezt a pilótát?')">Törlés</a>
+                        </td>
+                    <?php endif; ?>
                 </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="6" class="text-center">Nincs a keresésnek megfelelő pilóta.</td>
+                    <td colspan="<?= $is_admin ? '6' : '5' ?>" class="text-center">Nincs a keresésnek megfelelő pilóta.</td>
                 </tr>
             <?php endif; ?>
         </tbody>

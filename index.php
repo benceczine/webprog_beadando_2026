@@ -20,6 +20,48 @@ switch ($oldal) {
         echo "<h1>A Forma-1 Története (Főoldal)</h1>"; 
         break;
         
+    case 'regisztracio':
+        include('views/regisztracio.php');
+        break;
+
+    case 'regisztracio_mentes':
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $user = trim($_POST['user']);
+            $pass = $_POST['pass'];
+            $pass2 = $_POST['pass2'];
+
+            // 1. Biztonság: Egyezik-e a két jelszó?
+            if ($pass !== $pass2) {
+                uzenet_beallit('A két jelszó nem egyezik!', 'danger');
+                header("Location: index.php?oldal=regisztracio");
+                exit;
+            }
+
+            // 2. Biztonság: Foglalt-e már a felhasználónév?
+            $stmt = $dbh->prepare("SELECT id FROM felhasznalok WHERE felhasznalonev = ?");
+            $stmt->execute([$user]);
+            if ($stmt->fetch()) {
+                uzenet_beallit('Ez a felhasználónév már foglalt, válassz másikat!', 'warning');
+                header("Location: index.php?oldal=regisztracio");
+                exit;
+            }
+
+            // 3. Mentés: Jelszó titkosítása és adatbázisba írás
+            $titkositott_jelszo = password_hash($pass, PASSWORD_DEFAULT);
+            $stmt = $dbh->prepare("INSERT INTO felhasznalok (felhasznalonev, jelszo) VALUES (?, ?)");
+            $stmt->execute([$user, $titkositott_jelszo]);
+
+            // Siker esetén átirányítjuk a login oldalra
+            uzenet_beallit('Sikeres regisztráció! Most már beléphetsz.', 'success');
+            header("Location: index.php?oldal=login");
+            exit;
+        }
+        break;
+    
+    case 'login':
+        include('views/login.php');
+        break;
+    
     case 'login_ellenorzes':
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user = $_POST['user'];
@@ -83,10 +125,10 @@ switch ($oldal) {
 
     // Itt regisztráljuk be a törlés útvonalát is!
     case 'pilota_torles':
-        // Védelem: Csak bejelentkezett felhasználó törölhet!
-        if (!isset($_SESSION['user_id'])) {
-            uzenet_beallit('A pilóták törléséhez be kell jelentkezned!', 'danger');
-            header("Location: index.php?oldal=login");
+        // Védelem: Csak az 'admin' nevű felhasználó törölhet!
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            uzenet_beallit('Nincs jogosultságod a pilóták törléséhez!', 'danger');
+            header("Location: index.php?oldal=crud");
             exit; // Fontos, hogy itt megállítsuk a futást!
         }
         
@@ -98,12 +140,13 @@ switch ($oldal) {
         }
         header("Location: index.php?oldal=crud");
         break;
+
     case 'pilota_hozzaadas':
     case 'pilota_szerkesztes':
-        // Védelem: Csak bejelentkezve lehessen oldalt váltani
-        if (!isset($_SESSION['user_id'])) {
-            uzenet_beallit('A pilóták hozzáadásához és szerkesztéséhez be kell jelentkezned!', 'warning');
-            header("Location: index.php?oldal=login");
+        // Védelem: Csak az 'admin' nevű felhasználó szerkeszthet!
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            uzenet_beallit('Csak az adminisztrátor adhat hozzá vagy szerkeszthet pilótákat!', 'danger');
+            header("Location: index.php?oldal=crud");
             exit; // Megállítjuk a futást, hogy ne töltse be az űrlapot
         }
         include('views/pilota_szerkesztes.php');
