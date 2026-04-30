@@ -95,9 +95,9 @@ switch ($oldal) {
         exit;
         
     case 'kepek':
-        echo "<h1>Képgaléria</h1>";
+        include('views/kepek.php');
         break;
-        
+
     case 'kapcsolat':
         include('views/kapcsolat.php');
         break;
