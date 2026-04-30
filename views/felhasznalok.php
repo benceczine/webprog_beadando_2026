@@ -1,12 +1,13 @@
 <?php
-// Lekérjük a felhasználókat az adatbázisból
-$stmt = $dbh->query("SELECT id, felhasznalonev FROM felhasznalok ORDER BY felhasznalonev ASC");
+// Most már a kep_engedely oszlopot is lekérjük!
+$stmt = $dbh->query("SELECT id, felhasznalonev, kep_engedely FROM felhasznalok ORDER BY felhasznalonev ASC");
 $userek = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <div class="container mt-4">
     <h2 class="text-center mb-4">Felhasználók kezelése</h2>
 
+    <!-- Új felhasználó hozzáadása űrlap -->
     <div class="card shadow mb-4">
         <div class="card-header bg-success text-white">
             <h5 class="card-title mb-0">Új felhasználó hozzáadása (Admin)</h5>
@@ -26,14 +27,16 @@ $userek = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+    <!-- Felhasználók listája -->
     <div class="card shadow">
         <div class="card-body">
-            <table class="table table-bordered table-striped">
+            <table class="table table-bordered table-striped align-middle">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
                         <th>Felhasználónév</th>
-                        <th class="text-center">Műveletek</th>
+                        <th class="text-center">Képfeltöltés Joga</th>
+                        <th class="text-center">Egyéb Műveletek</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -41,13 +44,25 @@ $userek = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <tr>
                         <td><?= $u['id'] ?></td>
                         <td><strong><?= htmlspecialchars($u['felhasznalonev']) ?></strong></td>
+                        
+                        <!-- JOGOSULTSÁG GOMB -->
+                        <td class="text-center">
+                            <?php if($u['felhasznalonev'] !== 'admin'): ?>
+                                <?php if($u['kep_engedely'] == 1): ?>
+                                    <a href="index.php?oldal=kep_jog_valtas&id=<?= $u['id'] ?>" class="btn btn-secondary btn-sm">Jog visszavonása</a>
+                                <?php else: ?>
+                                    <a href="index.php?oldal=kep_jog_valtas&id=<?= $u['id'] ?>" class="btn btn-info btn-sm text-white">Jog megadása</a>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="text-muted">Az Admin mindent tud</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <!-- MŰVELETEK GOMBOK -->
                         <td class="text-center">
                             <a href="index.php?oldal=felhasznalo_jelszo&id=<?= $u['id'] ?>" class="btn btn-warning btn-sm">Új jelszó</a>
-                            
                             <?php if($u['felhasznalonev'] !== 'admin'): ?>
                                 <a href="index.php?oldal=felhasznalo_torles&id=<?= $u['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Biztosan törlöd ezt a felhasználót?')">Törlés</a>
-                            <?php else: ?>
-                                <span class="badge bg-secondary ms-1">Védett admin fiók</span>
                             <?php endif; ?>
                         </td>
                     </tr>
