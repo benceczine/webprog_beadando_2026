@@ -116,7 +116,13 @@ switch ($oldal) {
         break;
         
     case 'uzenetek':
-        echo "<h1>Beérkezett üzenetek</h1>";
+        // Védelem: Csak az admin láthatja a beérkezett üzeneteket!
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            uzenet_beallit('Nincs jogosultságod megtekinteni ezt az oldalt!', 'danger');
+            header("Location: index.php?oldal=fooldal");
+            exit;
+        }
+        include('views/uzenetek.php');
         break;
         
     case 'crud':
@@ -238,6 +244,83 @@ switch ($oldal) {
             uzenet_beallit('A jelszó sikeresen módosítva!', 'success');
         }
         header("Location: index.php?oldal=felhasznalok");
+        break;
+    case 'kep_jog_valtas':
+        // Védelem: Csak az admin állíthatja!
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            header("Location: index.php?oldal=fooldal");
+            exit;
+        }
+        
+        if (isset($_GET['id'])) {
+            $id = $_GET['id'];
+            
+            // Lekérdezzük a jelenlegi státuszt, és átfordítjuk (ha 1, akkor 0 lesz, ha 0, akkor 1)
+            $stmt = $dbh->prepare("SELECT kep_engedely FROM felhasznalok WHERE id = ?");
+            $stmt->execute([$id]);
+            $user = $stmt->fetch();
+            
+            if ($user) {
+                $uj_statusz = $user['kep_engedely'] ? 0 : 1;
+                $upd = $dbh->prepare("UPDATE felhasznalok SET kep_engedely = ? WHERE id = ?");
+                $upd->execute([$uj_statusz, $id]);
+                
+                $uzenet = $uj_statusz ? 'Képfeltöltési jog sikeresen MEGADVA!' : 'Képfeltöltési jog VISSZAVONVA!';
+                uzenet_beallit($uzenet, 'success');
+            }
+        }
+        header("Location: index.php?oldal=felhasznalok");
+        break;
+    case 'kep_feltoltes':
+        // Csak bejelentkezett felhasználók próbálkozhatnak
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: index.php?oldal=fooldal");
+            exit;
+        }
+
+        // Második védvonal: Tényleg van joga (vagy admin)?
+        $jogosult = false;
+        if ($_SESSION['user_nev'] === 'admin') {
+            $jogosult = true;
+        } else {
+            $stmt_jog = $dbh->prepare("SELECT kep_engedely FROM felhasznalok WHERE id = ?");
+            $stmt_jog->execute([$_SESSION['user_id']]);
+            $user_jog = $stmt_jog->fetch();
+            if ($user_jog && $user_jog['kep_engedely'] == 1) {
+                $jogosult = true;
+            }
+        }
+
+        if (!$jogosult) {
+            uzenet_beallit('Nincs jogosultságod képet feltölteni!', 'danger');
+            header("Location: index.php?oldal=kepek");
+            exit;
+        }
+
+        // Fájl feldolgozása
+        if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['kep'])) {
+            $fajl = $_FILES['kep'];
+            
+            // Ha nincs hiba a feltöltés során
+            if ($fajl['error'] === UPLOAD_ERR_OK) {
+                // Egyedi nevet generálunk neki (pl. 1623456789_kocsi.jpg), hogy ne írják felül egymást
+                $egyedi_nev = time() . '_' . basename($fajl['name']);
+                $cel_mappa = 'uploads/' . $egyedi_nev;
+
+                // Átmozgatjuk az ideiglenes mappából a véglegesbe
+                if (move_uploaded_file($fajl['tmp_name'], $cel_mappa)) {
+                    // Beírjuk az adatbázisba
+                    $stmt = $dbh->prepare("INSERT INTO galeria (fajlnev, feltolto_nev) VALUES (?, ?)");
+                    $stmt->execute([$egyedi_nev, $_SESSION['user_nev']]);
+                    uzenet_beallit('A kép sikeresen feltöltve!', 'success');
+                } else {
+                    uzenet_beallit('Hiba a fájl mentésekor!', 'danger');
+                }
+            } else {
+                uzenet_beallit('Hiba történt a feltöltés során.', 'danger');
+            }
+        }
+        header("Location: index.php?oldal=kepek");
         break;
 }
 
