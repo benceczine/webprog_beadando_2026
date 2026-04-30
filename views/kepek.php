@@ -44,15 +44,33 @@ if (isset($_SESSION['user_id'])) {
     <div class="row g-4">
         <?php if (count($kepek) > 0): ?>
             <?php foreach ($kepek as $kep): ?>
-                <div class="col-md-4 col-sm-6">
-                    <div class="card shadow-sm h-100 border-0">
-                        <!-- Itt jelenítjük meg a képet az uploads mappából -->
-                        <img src="uploads/<?= htmlspecialchars($kep['fajlnev']) ?>" class="card-img-top" alt="F1 Kép" style="height: 250px; object-fit: cover;">
-                        <div class="card-body text-center p-2">
-                            <small class="text-muted">Feltöltötte: <strong><?= htmlspecialchars($kep['feltolto_nev']) ?></strong></small>
-                        </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+    <?php if (count($kepek) > 0): ?>
+        <?php foreach ($kepek as $kep): ?>
+            <div style="border: 1px solid #ccc; padding: 10px; text-align: center; background-color: white;">
+                <img src="uploads/<?= htmlspecialchars($kep['fajlnev']) ?>" alt="F1 Kép" style="max-width: 250px; display: block; margin-bottom: 10px;">
+                <small>Feltöltötte: <strong><?= htmlspecialchars($kep['feltolto_nev']) ?></strong></small>
+                
+                <br>
+                
+                <!-- TÖRLÉS GOMB: Csak az Adminnak jelenik meg -->
+                <?php if (isset($_SESSION['user_nev']) && $_SESSION['user_nev'] === 'admin'): ?>
+                    <div style="margin-top: 10px;">
+                        <!-- A JavaScript confirm() dob fel egy kis megerősítő ablakot, nehogy véletlenül kattintsunk rá -->
+                        <a href="index.php?oldal=kep_torles&id=<?= $kep['id'] ?>" 
+                           style="color: red; text-decoration: none; font-weight: bold; font-size: 14px;"
+                           onclick="return confirm('Biztosan törölni akarod ezt a képet véglegesen?');">
+                           🗑️ Kép törlése
+                        </a>
                     </div>
-                </div>
+                <?php endif; ?>
+
+            </div>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <p>Még senki nem töltött fel képet a Boxutcából.</p>
+    <?php endif; ?>
+</div>
             <?php endforeach; ?>
         <?php else: ?>
             <div class="col-12 text-center">

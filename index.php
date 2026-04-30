@@ -322,6 +322,39 @@ switch ($oldal) {
         }
         header("Location: index.php?oldal=kepek");
         break;
+    case 'kep_torles':
+        // 1. Védelem: Szigorúan csak az admin használhatja!
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_nev'] !== 'admin') {
+            uzenet_beallit('Nincs jogosultságod képet törölni!', 'danger');
+            header("Location: index.php?oldal=kepek");
+            exit;
+        }
+
+        if (isset($_GET['id'])) {
+            $kep_id = $_GET['id'];
+
+            // 2. Lekérjük a fájl pontos nevét az adatbázisból
+            $stmt = $dbh->prepare("SELECT fajlnev FROM galeria WHERE id = ?");
+            $stmt->execute([$kep_id]);
+            $kep = $stmt->fetch();
+
+            if ($kep) {
+                $fajl_utvonal = 'uploads/' . $kep['fajlnev'];
+
+                // 3. Töröljük magát a fizikai fájlt a mappából (ha létezik)
+                if (file_exists($fajl_utvonal)) {
+                    unlink($fajl_utvonal); // Ez a parancs törli a fájlt a gépről/szerverről!
+                }
+
+                // 4. Töröljük a rekordot a MySQL adatbázisból is
+                $del_stmt = $dbh->prepare("DELETE FROM galeria WHERE id = ?");
+                $del_stmt->execute([$kep_id]);
+
+                uzenet_beallit('A kép sikeresen eltávolítva a szerverről!', 'success');
+            }
+        }
+        header("Location: index.php?oldal=kepek");
+        break;
 }
 
 // Lábjegyzet betöltése (minden oldalon ott lesz)
