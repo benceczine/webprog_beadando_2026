@@ -16,8 +16,7 @@ include('views/header.php');
 // Útválasztó (A tényleges Front-controller logika)
 switch ($oldal) {
     case 'fooldal':
-        // Később ide teszed a Youtube/Saját videós html-t
-        echo "<h1>A Forma-1 Története (Főoldal)</h1>"; 
+        include('views/fooldal.php');
         break;
         
     case 'regisztracio':
