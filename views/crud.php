@@ -1,66 +1,68 @@
 <?php
-require_once('models/pilota_model.php');
+// 1. Adatok lekérése a te oszlopneveid alapján (az, nem, nemzet, nev, szuldat)
+$kereses = isset($_GET['kereses']) ? trim($_GET['kereses']) : '';
 
-$kereses = isset($_GET['kereses']) ? $_GET['kereses'] : '';
-$pilotak = get_szurt_pilotak($dbh, $kereses);
-
-// Létrehozunk egy kényelmes változót, hogy tudjuk, admin-e az illető
-$is_admin = (isset($_SESSION['user_nev']) && $_SESSION['user_nev'] === 'admin');
+if ($kereses !== '') {
+    // Keresés a 'nev' oszlopban
+    $stmt = $dbh->prepare("SELECT * FROM pilotak WHERE nev LIKE ? ORDER BY nev ASC");
+    $stmt->execute(["%$kereses%"]);
+} else {
+    // Összes lekérése
+    $stmt = $dbh->query("SELECT * FROM pilotak ORDER BY nev ASC");
+}
+$pilotak = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<div class="container">
-    <h2 class="text-center my-4">Pilóták kezelése</h2>
-
-    <form action="index.php" method="GET" class="mb-3 d-flex" style="max-width: 400px;">
-        <input type="hidden" name="oldal" value="crud">
-        <input type="text" name="kereses" class="form-control me-2" placeholder="Keresés névre..." value="<?= htmlspecialchars($kereses) ?>">
-        <button type="submit" class="btn btn-outline-primary">Keresés</button>
-        
-        <?php if ($kereses !== ''): ?>
-            <a href="index.php?oldal=crud" class="btn btn-outline-secondary ms-2">Törlés</a>
+<div class="card p-4 shadow-sm border-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">Pilóták listája</h3>
+        <?php if(isset($_SESSION['user_nev']) && $_SESSION['user_nev'] === 'admin'): ?>
+            <a href="index.php?oldal=pilota_hozzaadas" class="btn btn-success fw-bold">Új pilóta +</a>
         <?php endif; ?>
+    </div>
+
+    <form method="GET" class="row g-2 mb-4">
+        <input type="hidden" name="oldal" value="crud">
+        <div class="col-auto">
+            <input type="text" name="kereses" class="form-control" placeholder="Név keresése..." value="<?= htmlspecialchars($kereses) ?>">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary fw-bold">Keresés</button>
+        </div>
     </form>
 
-    <?php if ($is_admin): ?>
-        <a href="index.php?oldal=pilota_hozzaadas" class="btn btn-success mb-3">Új pilóta felvétele</a>
-    <?php endif; ?>
-
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
-            <tr>
-                <th>ID</th>
-                <th>Név</th>
-                <th>Nem</th>
-                <th>Születési dátum</th>
-                <th>Nemzet</th>
-                <?php if ($is_admin): ?>
-                    <th>Műveletek</th>
-                <?php endif; ?>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (count($pilotak) > 0): ?>
-                <?php foreach ($pilotak as $p): ?>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover bg-white">
+            <thead class="table-dark">
                 <tr>
-                    <td><strong><?= $p['az'] ?></strong></td>
-                    <td><strong><?= htmlspecialchars($p['nev']) ?></strong></td>
-                    <td><?= htmlspecialchars($p['nem']) ?></td>
-                    <td><?= $p['szuldat'] ?></td>
-                    <td><?= htmlspecialchars($p['nemzet']) ?></td>
-                    
-                    <?php if ($is_admin): ?>
-                        <td>
-                            <a href="index.php?oldal=pilota_szerkesztes&id=<?= $p['az'] ?>" class="btn btn-primary btn-sm">Szerkesztés</a>
-                            <a href="index.php?oldal=pilota_torles&id=<?= $p['az'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Biztosan törölni szeretnéd ezt a pilótát?')">Törlés</a>
-                        </td>
+                    <th>Név</th>
+                    <th>Nemzetiség</th>
+                    <th>Születési dátum</th>
+                    <?php if(isset($_SESSION['user_nev']) && $_SESSION['user_nev'] === 'admin'): ?>
+                        <th class="text-center">Műveletek</th>
                     <?php endif; ?>
                 </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="<?= $is_admin ? '6' : '5' ?>" class="text-center">Nincs a keresésnek megfelelő pilóta.</td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php if (count($pilotak) > 0): ?>
+                    <?php foreach($pilotak as $p): ?>
+                    <tr>
+                        <td class="fw-bold"><?= htmlspecialchars($p['nev']) ?></td>
+                        <td><?= htmlspecialchars($p['nemzet']) ?></td>
+                        <td><?= htmlspecialchars($p['szuldat']) ?></td>
+                        
+                        <?php if(isset($_SESSION['user_nev']) && $_SESSION['user_nev'] === 'admin'): ?>
+                        <td class="text-center">
+                            <a href="index.php?oldal=pilota_szerkesztes&id=<?= $p['az'] ?>" class="btn btn-sm btn-warning fw-bold">Szerkeszt</a>
+                            <a href="index.php?oldal=pilota_torles&id=<?= $p['az'] ?>" class="btn btn-sm btn-danger fw-bold" onclick="return confirm('Biztosan törlöd?')">Töröl</a>
+                        </td>
+                        <?php endif; ?>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr><td colspan="4" class="text-center text-muted">Nincs találat.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
